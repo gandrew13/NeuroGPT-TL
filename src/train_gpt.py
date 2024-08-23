@@ -156,7 +156,7 @@ def train(config: Dict=None) -> Trainer:
         
     else:
         root_path = config["train_data_path"]
-        files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)# time len
+        files = read_threshold_sub('inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)# time len
      
         random.shuffle(files)
         train_dataset = EEGDataset(files[1000:], sample_keys=[

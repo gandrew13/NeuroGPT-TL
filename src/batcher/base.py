@@ -53,12 +53,19 @@ class EEGDataset(Dataset):
 
     def __len__(self):
         return len(self.filenames)
+        # return 32 * 100 # for testing purposes
 
     def __getitem__(self, idx):
         data = self.load_tensor(self.filenames[idx])
         #===reorder channels====
         data = self.reorder_channels(data)
+
+        # data = self.__get_dummy_inputs() # for testing purposes
+
         return self.preprocess_sample(data, seq_len=self.num_chunks)
+    
+    def __get_dummy_inputs(self) -> torch.tensor:
+        return torch.rand([22, 500]) # nr_channels, time_series_length
 
     @staticmethod
     def _pad_seq_right_to_n(
