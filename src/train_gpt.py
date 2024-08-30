@@ -47,7 +47,7 @@ from utils import cv_split_bci, read_threshold_sub
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_path, '../'))
 # from batcher.make import make_batcher
-from batcher.base import EEGDataset
+from batcher.base import EEGDataset, EEGImageNetDataset
 from decoder.make_decoder import make_decoder
 from embedder.make import make_embedder
 from trainer.make import make_trainer
@@ -66,28 +66,18 @@ def train(config: Dict=None) -> Trainer:
         config = get_config()
 
     if config['do_train']:
-        os.makedirs(
-            config["log_dir"],
-            exist_ok=True
-        )
+        os.makedirs(config["log_dir"], exist_ok=True)
         resume_path = str(config["resume_from"]) if config["resume_from"] is not None else None
         
         if resume_path is not None:
-            config_filepath = os.path.join(
-                config["resume_from"],
-                'train_config.json'
-            )
+            config_filepath = os.path.join(config["resume_from"], 'train_config.json')
 
             if os.path.isfile(config_filepath):
-                print(
-                    f'Loading training config from {config_filepath}'
-                )
+                print(f'Loading training config from {config_filepath}')
 
                 with open(config_filepath, 'r') as f:
                     config = json.load(f)
-
             else:
-
                 with open(config_filepath, 'w') as f:
                     json.dump(config, f, indent=2)
             
@@ -98,79 +88,38 @@ def train(config: Dict=None) -> Trainer:
                 and os.path.isdir(os.path.join(resume_path, p))
             ]
             last_checkpoint = max(checkpoints)
-            print(
-                f'Resuming training from checkpoint-{last_checkpoint} in {resume_path}'
-            )
-            config["resume_from"] = os.path.join(
-                resume_path,
-                f'checkpoint-{last_checkpoint}'
-            )
-
+            print(f'Resuming training from checkpoint-{last_checkpoint} in {resume_path}')
+            config["resume_from"] = os.path.join(resume_path, f'checkpoint-{last_checkpoint}')
         else:
-            config_filepath = os.path.join(
-                config["log_dir"],
-                'train_config.json'
-            )
+            config_filepath = os.path.join(config["log_dir"], 'train_config.json')
             
             with open(config_filepath, 'w') as f:
                 json.dump(config, f, indent=2)
 
             config["resume_from"] = None
 
-    assert config["training_style"] in {
-        'CSM',
-        'CSM_causal',
-        'decoding'
-    }, f'{config["training_style"]} is not supported.'
-    
-    assert config["architecture"] in {
-        'GPT',
-        'PretrainedGPT2'
-    }, f'{config["architecture"]} is not supported.'
+    assert config["training_style"] in {'CSM', 'CSM_causal', 'decoding'}, f'{config["training_style"]} is not supported.'
+    assert config["architecture"] in {'GPT', 'PretrainedGPT2'}, f'{config["architecture"]} is not supported.'
     
     if config['set_seed']:
         random.seed(config["seed"])
         manual_seed(config["seed"])
 
-    #handles the input part, which are the output from encoder.
-    if config["training_style"] == 'decoding':
-        downstream_path = config["dst_data_path"]
-      
-        train_folds, test_folds = cv_split_bci(sorted(os.listdir(downstream_path))[:18])
-        train_files = train_folds[config['fold_i']]
-        test_files = test_folds[config['fold_i']]
-
-        train_dataset = MotorImageryDataset(train_files, sample_keys=[
-                'inputs',
-                'attention_mask'
-            ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=downstream_path, gpt_only= not config["use_encoder"])
-        # pdb.set_trace()
-        
-        test_dataset = MotorImageryDataset(test_files, sample_keys=[
-                'inputs',
-                'attention_mask'
-            ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=downstream_path, gpt_only= not config["use_encoder"])
-       
-        validation_dataset = test_dataset
-        test_dataset = train_dataset
-        
+    # TODO: maybe split into train/val/test, not only train/test
+    leave_subject_out = -1
+    if leave_subject_out == -1:
+        ds = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=None)
+    
+        train_set_perc = (80 / 100) * len(ds)
+        test_set_perc = (20 / 100) * len(ds)
+        train_dataset, test_dataset = torch.utils.data.random_split(ds, [int(train_set_perc), int(test_set_perc)])
     else:
-        root_path = config["train_data_path"]
-        files = read_threshold_sub('inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)# time len
-     
-        random.shuffle(files)
-        train_dataset = EEGDataset(files[1000:], sample_keys=[
-            'inputs',
-            'attention_mask'
-        ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
+        train_dataset = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=True)
 
-        validation_dataset = EEGDataset(files[:1000], sample_keys=[
-            'inputs',
-            'attention_mask'
-        ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
-
-        test_dataset = None
-
+        test_dataset = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=False)
 
     def model_init(params: Dict=None):
         model_config = dict(config)
@@ -190,7 +139,7 @@ def train(config: Dict=None) -> Trainer:
         run_name=config["run_name"],
         output_dir=config["log_dir"],
         train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
+        validation_dataset=test_dataset,
         per_device_train_batch_size=config["per_device_training_batch_size"],
         per_device_eval_batch_size=config["per_device_validation_batch_size"],
         dataloader_num_workers=config["num_workers"],
@@ -215,39 +164,14 @@ def train(config: Dict=None) -> Trainer:
 
     if config['do_train']:
         trainer.train(resume_from_checkpoint=config["resume_from"])
-        trainer.save_model(
-            os.path.join(
-                config["log_dir"],
-                'model_final'
-            )
-        )
+        trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
 
+    # test_dataset = None
     if test_dataset is not None:
         test_prediction = trainer.predict(test_dataset)
-        pd.DataFrame(
-            test_prediction.metrics,
-            index=[0]
-        ).to_csv(
-            os.path.join(
-                config["log_dir"],
-                'test_metrics.csv'
-            ),
-            index=False
-        )
-        np.save(
-            os.path.join(
-                config["log_dir"],
-                'test_predictions.npy'
-            ),
-            test_prediction.predictions
-        )
-        np.save(
-            os.path.join(
-                config["log_dir"],
-                'test_label_ids.npy'
-            ),
-            test_prediction.label_ids
-        )
+        pd.DataFrame(test_prediction.metrics, index=[0]).to_csv(os.path.join(config["log_dir"], 'test_metrics.csv'),index=False)
+        np.save(os.path.join(config["log_dir"], 'test_predictions.npy'), test_prediction.predictions)
+        np.save(os.path.join(config["log_dir"], 'test_label_ids.npy'), test_prediction.label_ids)
 
     return trainer
 
