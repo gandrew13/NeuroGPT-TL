@@ -82,7 +82,7 @@ class Model(torch.nn.Module):
         # we set strict=False, because we can be sure
         # that all relevant keys are in pretrained
         self.load_state_dict(pretrained, strict=False)
-        
+
         # Used to change a specific layer in the encoder, for use with 20 channels instead of 22
         # Doing this didn't have good results.
         #layer = self.encoder.patch_embedding.shallownet[1]

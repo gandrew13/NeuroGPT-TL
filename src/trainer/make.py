@@ -66,6 +66,13 @@ class CSVLogCallback(TrainerCallback):
                         state.log_history[-1]['learning_rate'] if 'learning_rate' in state.log_history[-1] else None
                     )
                 )
+            
+            model_save_data_pth = '/'.join(self.train_log_filepath.split('/')[:-1])
+            if len(state.log_history) > 1:
+                if(state.log_history[-1]['eval_loss'] < state.log_history[-2]['eval_loss']):
+                    torch.save(model.state_dict(), model_save_data_pth + "/pretrained_smallest_evalset_loss.pth")
+            torch.save(model.state_dict(), model_save_data_pth + "/pretrained_smallest_trainset_loss.pth")
+
 
 
 def _cat_data_collator(features: List) -> Dict[str, torch.tensor]:
