@@ -83,11 +83,18 @@ class Model(torch.nn.Module):
         # that all relevant keys are in pretrained
         self.load_state_dict(pretrained, strict=False)
 
-        # Used to change a specific layer in the encoder, for use with 20 channels instead of 22
-        # Doing this didn't have good results.
+        # self.change_input_channels_num(58) # uncomment to adapt to any number of channels
+
+    def change_input_channels_num(self, num_channels: int) -> None:
+        '''
+        Only required if loading the pretrained model weights on TUH.
+        Used to change a specific layer in the encoder, for use with 20 channels (or any other number) instead of 22 (as in the original NeuroGPT paper),
+        in order to adapt it adapt it to another dataset.
+        Doing this on EEG-ImageNet dataset didn't have good results.
+        '''
         #layer = self.encoder.patch_embedding.shallownet[1]
-        #self.encoder.patch_embedding.shallownet[1] = torch.nn.Conv2d(layer.weight.shape[0], layer.weight.shape[1], (20, 1), (1, 1))
-        
+        #self.encoder.patch_embedding.shallownet[1] = torch.nn.Conv2d(layer.weight.shape[0], layer.weight.shape[1], (num_channels, 1), (1, 1))
+
     def switch_ft_mode(self, ft_encoder_only=False):
         self.ft_only_encoder = ft_encoder_only
 
