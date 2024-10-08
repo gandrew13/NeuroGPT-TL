@@ -383,8 +383,11 @@ class _FullyConnected(nn.Module):
         """
 
         super().__init__()
+
+        self.num_chunks = 3  # the number of chunks (num_chunks hyperparam). 5 for EEGImageNet, 3 for Alljoined1
+
         self.fc = nn.Sequential(
-            nn.Linear(final_fc_length*2, out_channels),
+            nn.Linear(final_fc_length * self.num_chunks, out_channels),
             nn.ELU(),
             nn.Dropout(drop_prob_1),
             nn.Linear(out_channels, hidden_channels),
@@ -393,7 +396,7 @@ class _FullyConnected(nn.Module):
         )
 
     def forward(self, x):
-        x = x.contiguous().view(x.size(0)//2, -1)
+        x = x.contiguous().view(x.size(0) // self.num_chunks, -1)
         out = self.fc(x)
         return out
 
