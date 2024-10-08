@@ -1,3 +1,6 @@
+import json
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from .base import *
 
 # TODO: refactor, reuse code from .base
@@ -148,3 +151,64 @@ class Alljoined1(Dataset):
         # so you might set std to a small positive value or handle it in another way.
         # std = np.where(std == 0, 1e-23, std)
         return (data - mean) / (std + 1e-25)
+    
+
+
+def onehot_encode(categories_list: list) -> dict[str, list]:
+    label_encoder = LabelEncoder()
+    integer_encoded = label_encoder.fit_transform(categories_list)
+    
+    # binary encode
+    onehot_encoder = OneHotEncoder(sparse_output=False)
+    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+    onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
+
+    onehot_encoded_dict = {}
+    for el in onehot_encoded:
+        category_str = label_encoder.inverse_transform([np.argmax(el[:])])
+        onehot_encoded_dict[category_str[0]] = el
+    return onehot_encoded_dict
+
+
+def load_alljoined1_dataset(config: Dict) -> tuple[Dataset, Dataset, Dataset]:
+    ds = datasets.load_dataset("Alljoined/05_125") # HuggingFace
+
+    # process the labels
+    #labels = []
+    #labels_coco = []
+    #[labels.append(entry['73k_id']) for entry in ds['train'] if entry['73k_id'] not in labels]
+    with open("../Datasets/Alljoined1/captions_and_categories.json") as f:
+        labels_json = json.load(f)
+
+    # make a list of all supercategories
+    categories = []
+    labels = {}
+    for entry in labels_json:
+        image_categories_list = entry["categories"] # the categories an image belongs to
+        image_cats = [cat["supercategory_name"] for cat in image_categories_list]
+        categories.extend(image_cats)
+        labels[int(entry["nsdId"]) - 1] = set(image_cats) # in the HuggingFace dataset the NSD ID (73k_id) is saved as nsd_id - 1, so I have to subtract 1 here as well, to match IDs
+
+    # eliminate the duplicates
+    categories = list(set(categories))
+    onehot_encoding = onehot_encode(categories)
+
+    # make dict = {image_id: onehot_encoding}
+    for image_id, cats in labels.items():
+        labels[image_id] = sum([onehot_encoding[cat] for cat in cats])
+
+    # make a dict {"supercategory": one-hot encoded supercategory}
+    #encoded_cat = pd.get_dummies(pd.DataFrame(data={'col1':categories})['col1'])
+    
+    #onehot_encoder = OneHotEncoder(sparse_output=False)
+    #onehot_encoded = onehot_encoder.fit_transform(categories)
+    #print(encoded_cat)
+
+    #labels[entry["nsId"]] = entry["categories"]
+    
+    train_data = Alljoined1(ds['train'], labels, sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                         ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"])
+    test_data = Alljoined1(ds['test'], labels, sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                       ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"])
+
+    return train_data, None, test_data

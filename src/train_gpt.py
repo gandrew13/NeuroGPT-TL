@@ -28,7 +28,7 @@ src/trainer: Trainer for model; invokes instance of
 src/model: Build full model from components (ie., embedder, 
     decoder, unembedder). See make_model() below for details.
 """
-from batcher.downstream_dataset import MotorImageryDataset
+#from batcher.downstream_dataset import MotorImageryDataset
 import torch
 import os
 import argparse
@@ -39,6 +39,10 @@ from datetime import datetime
 from numpy import random
 import pandas as pd
 import numpy as np
+import json as js
+from torch.utils.data import Dataset
+#import datasets
+#from datasets import load_dataset
 from encoder.conformer_braindecode import EEGConformer
 from torch import manual_seed
 import sys
@@ -47,7 +51,9 @@ from utils import cv_split_bci, read_threshold_sub
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_path, '../'))
 # from batcher.make import make_batcher
-from batcher.base import EEGDataset, EEGImageNetDataset
+#from batcher.base import EEGDataset
+#from batcher.eegimagenet import load_eegimagenet_dataset
+from batcher.alljoined1 import load_alljoined1_dataset
 from decoder.make_decoder import make_decoder
 from embedder.make import make_embedder
 from trainer.make import make_trainer
@@ -183,6 +189,7 @@ def make_model(model_config: Dict=None):
     if model_config["use_encoder"] == True:
         chann_coords = None
         
+        # CrossEntropy (includes logsoftmax) is used for normal classification. BCEWithLogits (includes softmax) is used for multilabel classification.
         encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=22, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"])
         #calculates the output dimension of the encoder, which is the output of transformer layer.
         model_config["parcellation_dim"] = ((model_config['chunk_len'] - model_config['filter_time_length'] + 1 - model_config['pool_time_length']) // model_config['stride_avg_pool'] + 1) * model_config['n_filters_time']

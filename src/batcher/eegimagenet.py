@@ -148,3 +148,39 @@ class EEGImageNetDataset(Dataset):
 
         return torch.stack(new_eeg_signal, dim = 0)
     
+
+def load_eegimagenet_dataset(dataset_dir: str, config: Dict) -> tuple[Dataset, Dataset, Dataset]:
+    print("Loading the data from ", dataset_dir, "...")
+    loaded_data = torch.load(os.path.join(dataset_dir, "EEG-ImageNet_full.pth"))
+    if loaded_data:
+        print("Yaay, dataset loaded successfully!")
+    else:
+        print("Ooops, couldn't load the data!")
+        return
+
+    # TODO: maybe split into train/val/test, not only train/test
+    leave_out_subject = 7 # [0, 7]
+    if leave_out_subject == -1:
+        ds = EEGImageNetDataset(loaded_data = loaded_data, sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"])
+    
+        train_set_perc = (80 / 100) * len(ds)
+        test_set_perc = (20 / 100) * len(ds)
+        train_dataset, test_dataset = torch.utils.data.random_split(ds, [int(train_set_perc), int(test_set_perc)])
+    else:
+        train_data = [loaded_data['dataset'][i] for i in range(len(loaded_data['dataset'])) if loaded_data['dataset'][i]['subject'] != leave_out_subject]
+        test_data = [loaded_data['dataset'][i] for i in range(len(loaded_data['dataset'])) if loaded_data['dataset'][i]['subject'] == leave_out_subject]
+            
+        train_dataset = EEGImageNetDataset(train_data, sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"])
+
+        test_dataset = EEGImageNetDataset(test_data, sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
+                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"])
+        
+    print(f"Train set len: {len(train_dataset)}")
+    print(f"Test set len: {len(test_dataset)}")
+    [print("AAAAA") for entry in test_data if entry['subject'] != leave_out_subject]
+    [print("BBBBB") for entry in train_data if entry['subject'] == leave_out_subject]
+    #[print(entry['granularity']) for entry in train_dataset if entry['granularity'] != "coarse"]
+
+    return train_dataset, test_dataset, test_dataset # test set is None if we are training and not None if we are fine-tuning
