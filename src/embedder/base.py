@@ -181,6 +181,10 @@ class BaseEmbedder(torch.nn.Module):
             )
         }
     
+    # BCEWithLogits for multilabel classification. BCEWithLogits applies Sigmoid by default.
+    def decoding_loss_multi_label_classification(self, decoding_logits, labels, **kwargs) -> Dict[str, torch.tensor]:
+        return {'decoding_loss': self.bxe_loss(input=decoding_logits, target=labels.to(dtype=torch.float64))}
+    
     def reconstruction_loss(
         self,
         input,
@@ -241,7 +245,8 @@ class BaseEmbedder(torch.nn.Module):
         ) -> Dict[str, torch.tensor]:
 
         if self.is_decoding_mode:
-            losses = self.decoding_loss(
+            # losses = self.decoding_loss(                              # use this for single label classification
+            losses = self.decoding_loss_multi_label_classification(     # use this for multilabel classification
                 **batch,
                 **outputs
             )

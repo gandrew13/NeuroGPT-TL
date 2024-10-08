@@ -15,6 +15,8 @@ class CSVLogCallback(TrainerCallback):
         super().__init__()
         self.train_log_filepath = None
         self.eval_log_filepath = None
+        self.smallest_train_loss = np.inf
+        self.smallest_eval_loss = np.inf
         
     def on_log(
         self,
@@ -103,6 +105,13 @@ def decoding_accuracy_metrics(eval_preds):
     return {
         "accuracy": round(accuracy, 3)
     }
+
+def decoding_accuracy_metrics_multilabel_classification(eval_preds):
+    preds, labels = eval_preds
+    preds = torch.nn.functional.sigmoid(torch.tensor(preds)) # I need the probability for each class (label). BCELossWithLogits loss applies sigmoid too, by default.
+    preds = np.round(preds) # this should round to 0 or 1
+    accuracy = accuracy_score(labels, preds)
+    return {"accuracy": round(accuracy, 3)}
 
 
 def make_trainer(
@@ -211,7 +220,8 @@ def make_trainer(
     data_collator = _cat_data_collator
     is_deepspeed = deepspeed is not None
     # TODO: custom compute_metrics so far not working in multi-gpu setting
-    compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
+    #compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
+    compute_metrics = decoding_accuracy_metrics_multilabel_classification if training_style=='decoding' and compute_metrics is None else compute_metrics
 
     trainer = Trainer(
         args=trainer_args,
