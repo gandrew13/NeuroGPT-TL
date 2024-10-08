@@ -46,6 +46,7 @@ class CSVLogCallback(TrainerCallback):
             with open(self.eval_log_filepath, 'a') as f:
                 f.write('step,loss,accuracy\n')
 
+        model_save_pth = '/'.join(self.train_log_filepath.split('/')[:-1])
         is_eval = any('eval' in k for k in state.log_history[-1].keys())
 
         if is_eval:
@@ -57,6 +58,10 @@ class CSVLogCallback(TrainerCallback):
                     )
                 )
 
+            if state.log_history[-1]['eval_loss'] < self.smallest_eval_loss:
+                print("Saving best eval loss model...")
+                torch.save(model.state_dict(), model_save_pth + "/pretrained_smallest_evalset_loss.pth")
+                self.smallest_eval_loss = state.log_history[-1]['eval_loss']
         else:
 
             with open(self.train_log_filepath, 'a') as f:
@@ -67,11 +72,10 @@ class CSVLogCallback(TrainerCallback):
                     )
                 )
             
-            model_save_data_pth = '/'.join(self.train_log_filepath.split('/')[:-1])
-            if len(state.log_history) > 1:
-                if(state.log_history[-1]['eval_loss'] < state.log_history[-2]['eval_loss']):
-                    torch.save(model.state_dict(), model_save_data_pth + "/pretrained_smallest_evalset_loss.pth")
-            torch.save(model.state_dict(), model_save_data_pth + "/pretrained_smallest_trainset_loss.pth")
+            if state.log_history[-1]['loss'] < self.smallest_train_loss:
+                print("Saving best train loss model...")
+                torch.save(model.state_dict(), model_save_pth + "/pretrained_smallest_evalset_loss.pth")
+                self.smallest_train_loss = state.log_history[-1]['loss']
 
 
 
