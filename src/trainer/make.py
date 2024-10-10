@@ -61,7 +61,7 @@ class CSVLogCallback(TrainerCallback):
                 )
 
             if state.log_history[-1]['eval_loss'] < self.smallest_eval_loss:
-                print("Saving best eval loss model...")
+                print("\nSaving best eval loss model...")
                 torch.save(model.state_dict(), model_save_pth + "/pretrained_smallest_evalset_loss.pth")
                 self.smallest_eval_loss = state.log_history[-1]['eval_loss']
         else:
@@ -73,11 +73,11 @@ class CSVLogCallback(TrainerCallback):
                         state.log_history[-1]['learning_rate'] if 'learning_rate' in state.log_history[-1] else None
                     )
                 )
-            
-            if state.log_history[-1]['loss'] < self.smallest_train_loss:
-                print("Saving best train loss model...")
-                torch.save(model.state_dict(), model_save_pth + "/pretrained_smallest_evalset_loss.pth")
-                self.smallest_train_loss = state.log_history[-1]['loss']
+            key = "loss" if "loss" in state.log_history[-1] else "train_loss"
+            if state.log_history[-1][key] < self.smallest_train_loss:
+                print("\nSaving best training loss model...")
+                torch.save(model.state_dict(), model_save_pth + "/pretrained_smallest_trainset_loss.pth")
+                self.smallest_train_loss = state.log_history[-1][key]
 
 
 
