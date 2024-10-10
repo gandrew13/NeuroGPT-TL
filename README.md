@@ -29,3 +29,6 @@ pip install -r requirements.txt
 This project is developed based on the following open-source repositories:
 - [Self-supervised learning of brain dynamics from broad neuroimaging data](https://github.com/athms/learning-from-brains)
 - [EEG-Conformer](https://github.com/eeyhsong/EEG-Conformer)
+
+## Personal statement
+If you would like to use my fork of the Neuro-GPT in any public or commercial way, please contact me at andrei.galbenus13@gmail.com. Also make sure you comply with the rules of the original repo. All rights reserved.
