@@ -5,10 +5,8 @@ __pycache__/
 slurm*
 *.npy
 *.out
-*.csv
 *.pt
 *.bin
-*.json
 *.pyc
 
 # C extensions
@@ -136,5 +134,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-data/
-results/
+*.pth
+*.safetensors
+
+.vscode/
