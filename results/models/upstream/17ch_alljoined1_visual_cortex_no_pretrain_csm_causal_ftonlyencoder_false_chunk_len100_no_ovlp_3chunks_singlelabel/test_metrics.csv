@@ -1,0 +1,2 @@
+test_loss,test_runtime,test_samples_per_second,test_steps_per_second
+0.1700989454984665,35.3379,246.648,3.877
