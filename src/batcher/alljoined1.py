@@ -194,8 +194,12 @@ def load_alljoined1_dataset(config: Dict) -> tuple[Dataset, Dataset, Dataset]:
     onehot_encoding = onehot_encode(categories)
 
     # make dict = {image_id: onehot_encoding}
-    for image_id, cats in labels.items():
-        labels[image_id] = sum([onehot_encoding[cat] for cat in cats])
+    if config["multi_label"]:
+        for image_id, cats in labels.items():
+            labels[image_id] = sum([onehot_encoding[cat] for cat in cats])
+    else:
+        for image_id, cats in labels.items():
+            labels[image_id] = categories.index(list(cats)[0])
 
     # make a dict {"supercategory": one-hot encoded supercategory}
     #encoded_cat = pd.get_dummies(pd.DataFrame(data={'col1':categories})['col1'])
