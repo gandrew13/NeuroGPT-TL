@@ -35,8 +35,18 @@ class Alljoined1(Dataset):
         image_id = self.data[index]['73k_id']
 
         # reorder channels
-        data = self.reorder_channels(data)
-        
+        # data = self.reorder_channels(data)
+
+        # filter channels (used to experiment with different number of channels)
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8"]) # 8 channels, keep only the occipital lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8"]) #17 channels keep only the occipital lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8"]) # 26 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8"]) # 35 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8"]) # 44 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8"]) # 53 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "AF3", "AF4", "FP1", "FPZ", "FP2"]) # 58 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        #print(len(data), len(data[0]))
+
         return self.preprocess_sample(data, seq_len=self.num_chunks, labels=self.labels[image_id])
 
     def __len__(self):
@@ -44,7 +54,7 @@ class Alljoined1(Dataset):
 
     def reorder_channels(self, data):
         orig_eegimagenet_ch_order = ["FP1", "FPZ", "FP2", "AF3", "AF4", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "PO7", "PO5", "PO3", "POZ", "PO4", "PO6", "PO8", "CB1", "O1", "OZ", "O2", "CB2"]
-        alljoined1_ch_order = ['FP1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5', 'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3', 'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1', 'OZ', 'POZ', 'PZ', 'CPZ', 'FPZ', 'FP2', 'AF8', 'AF4', 'AFZ', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4', 'FC2', 'FCZ', 'CZ', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6', 'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4', 'O2'] # removed 'Iz' and 'Status' channels
+        alljoined1_ch_order = ['FP1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5', 'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3', 'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1', 'OZ', 'POZ', 'PZ', 'CPZ', 'FPZ', 'FP2', 'AF8', 'AF4', 'AFZ', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4', 'FC2', 'FCZ', 'CZ', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6', 'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4', 'O2'] # taken from the .fif files read in fif_parser.py; removed 'Iz' and 'Status' channels
         eegimagenet_channels_missing_from_alljoined = ['PO5', 'PO6', 'CB1', 'CB2']
 
         # remove EEGImageNet channels that are not in Alljoined1
@@ -59,7 +69,14 @@ class Alljoined1(Dataset):
                 print("Error (reorder_channels): couldn't find channel!")
 
         return reordered
+    
 
+    def filter_channels(self, data: list, channels_to_keep: list) -> list:
+        alljoined1_ch_order = ['FP1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5', 'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3', 'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1', 'OZ', 'POZ', 'PZ', 'CPZ', 'FPZ', 'FP2', 'AF8', 'AF4', 'AFZ', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4', 'FC2', 'FCZ', 'CZ', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6', 'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4', 'O2'] # removed 'Iz' and 'Status' channels
+        return [data[idx] for idx, ch in enumerate(alljoined1_ch_order) if ch in channels_to_keep]
+        
+
+    # @unused
     def find_uncommon_channels(self) -> None:
         eegimagenet_ch_order = ["FP1", "FPZ", "FP2", "AF3", "AF4", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "PO7", "PO5", "PO3", "POZ", "PO4", "PO6", "PO8", "CB1", "O1", "OZ", "O2", "CB2"]
         alljoined1_ch_order = ['FP1', 'AF7', 'AF3', 'F1', 'F3', 'F5', 'F7', 'FT7', 'FC5', 'FC3', 'FC1', 'C1', 'C3', 'C5', 'T7', 'TP7', 'CP5', 'CP3', 'CP1', 'P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'O1', 'IZ', 'OZ', 'POZ', 'PZ', 'CPZ', 'FPZ', 'FP2', 'AF8', 'AF4', 'AFZ', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT8', 'FC6', 'FC4', 'FC2', 'FCZ', 'CZ', 'C2', 'C4', 'C6', 'T8', 'TP8', 'CP6', 'CP4', 'CP2', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4', 'O2', 'Status']

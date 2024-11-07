@@ -64,6 +64,10 @@ class EEGImageNetDataset(Dataset):
 
         # data = self.__get_dummy_inputs() # for testing purposes
 
+        # filter channels (used to experiment with different number of channels)
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8"]) # 8 channels keep only the occipital lobe channels, since they are related to the visual cortex. Common to EEGImage-Net and Alljoined1.
+        data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "AF3", "AF4", "FP1", "FPZ", "FP2"]) # keep only the occipital and central lobe channels, since they are related to the visual cortex
+
         label_idx = self.labels.index(self.data[idx]['label'])
         if label_idx == -1:
             print("Error! Label not found!")
@@ -73,7 +77,11 @@ class EEGImageNetDataset(Dataset):
     
     def __get_dummy_inputs(self) -> torch.tensor:
         return torch.rand([22, 500]) # nr_channels, time_series_length
+    
+    def filter_channels(self, data: list, channels_to_keep: list) -> list:
+        chan_order = ["FP1", "FPZ", "FP2", "AF3", "AF4", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "PO7", "PO5", "PO3", "POZ", "PO4", "PO6", "PO8", "CB1", "O1", "OZ", "O2", "CB2"]
 
+        return [data[idx] for idx, ch in enumerate(chan_order) if ch in channels_to_keep]
 
     def reorder_channels(self, data):
         chann_labels = {'FP1': 0, 'FP2': 1, 'F3': 2, 'F4': 3, 'C3': 4, 'C4': 5, 'P3': 6, 'P4': 7, 'O1': 8, 'O2': 9, 'F7': 10, 'F8': 11, 'T3': 12, 'T4': 13, 'T5': 14, 'T6': 15, 'FZ': 16, 'CZ': 17, 'PZ': 18, 'OZ': 19, 'T1': 20, 'T2': 21}
