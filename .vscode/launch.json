@@ -1,0 +1,114 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Fine-tuning",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "~/Desktop/PhD/NeuroGPT-TL/src/train_gpt.py",
+            "console": "integratedTerminal",
+            "args": ["--training-style", "CSM_causal",
+                     "--num-decoding-classes", "12",  // 59 for EEG-ImageNet and 12 for Alljoined1
+                     "--training-steps", "100000",
+                     "--eval_every_n_steps", "2500",
+                     "--log-every-n-steps", "2500",
+                     "--num-workers", "8",
+                     "--num_chunks", "3",
+                     "--per-device-training-batch-size", "64",
+                     "--per-device-validation-batch-size", "64",
+                     "--chunk_len", "100",
+                     "--chunk_ovlp", "0",
+                     "--run-name", "8ch_alljoined1_visual_cortex_no_pretrain_csm_causal_ftonlyencoder_false_chunk_len100_no_ovlp_3_chunk_singlelabel",
+                     "--ft-only-encoder", "False",
+                     "--fold_i", "0",
+                     "--num-encoder-layers", "6",
+                     "--num-hidden-layers", "6",
+                     "--learning-rate", "1e-4",
+                     "--embedding-dim", "1024",
+                     "--dst-data-path", "../../bci2a_egg_npz/",
+                     "--sampling_rate", "1000"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/58ch_alljoined1_pretrained_on_eegimagenet62ch_decoding_chunk_len200_ovlp150_3_chunks_multilabel-0/pretrained_smallest_trainset_loss.pth"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/62ch_7th_subject_as_test_set_no_pretrain_csm_causal_chunk_len200_ovlp150/pretrained_smallest_trainset_loss.pth"]
+                     //"--resume-from", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/22ch_7th_subject_as_test_set_pretrained_on_TUH_decoding_chunk_len200_ovlp150-0"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/64ch_7th_subject_as_test_set_csmcausal_chunk_len200_ovlp150/pretrained_smallest_trainset_loss.pth"]
+
+        },
+        {
+            "name": "Python Debugger - Training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "~/Desktop/PhD/NeuroGPT-TL/src/train_gpt.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--training-steps",
+                "50000",
+                "--eval_every_n_steps",
+                "1000",
+                "--log-every-n-steps",
+                "3000",
+                "--per-device-training-batch-size",
+                "32",
+                "--per-device-validation-batch-size",
+                "32",
+                "--num-workers",
+                "8",
+                "--num_chunks",
+                "2",
+                "--chunk_len",
+                "200",
+                "--chunk_ovlp",
+                "0",
+                "--num-hidden-layers",
+                "6",
+                "--num-encoder-layers",
+                "6",
+                "--run-name",
+                "32clen2_embed1024",
+                "--training-style",
+                "CSM_causal",
+                "--embedding-dim",
+                "1024",
+                "--train-data-path",
+                "../../tuh_tensors"
+            ]
+        },
+        {
+            "name": "Python Debugger: Prediction (Accuracy)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "~/Desktop/PhD/NeuroGPT-TL/src8_for_testing/train_gpt.py",
+            "console": "integratedTerminal",
+            "args": ["--training-style", "decoding",
+                     "--num-decoding-classes", "12",  // 59 for EEGImageNet and 12 for Alljoined1
+                     "--training-steps", "2000",
+                     "--eval_every_n_steps", "500",
+                     "--log-every-n-steps", "500",
+                     "--num-workers", "8",
+                     "--num_chunks", "2",
+                     "--per-device-training-batch-size", "64",
+                     "--per-device-validation-batch-size", "64",
+                     "--chunk_len", "200",
+                     "--chunk_ovlp", "0",
+                     "--run-name", "aaa",
+                     "--ft-only-encoder", "True",
+                     //"--freeze-decoder", "True",
+                     "--fold_i", "0",
+                     "--num-encoder-layers", "6",
+                     "--num-hidden-layers", "6",
+                     "--learning-rate", "1e-4",
+                     "--embedding-dim", "1024",
+                     "--dst-data-path", "../../bci2a_egg_npz/",
+                     "--sampling_rate", "1000",
+                     "--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/17ch_alljoined1_visual_cortex_no_pretrain_csm_causal_ftonlyencoder_false_chunk_len200_no_ovlp_padto400_2chunks_singlelabel/pretrained_smallest_trainset_loss.pth"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/58ch_alljoined1_pretrained_on_eegimagenet62ch_decoding_chunk_len200_ovlp150_3_chunks_multilabel-0/pretrained_smallest_trainset_loss.pth"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/62ch_7th_subject_as_test_set_no_pretrain_csm_causal_chunk_len200_ovlp150/pretrained_smallest_trainset_loss.pth"]
+                     //"--resume-from", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/22ch_7th_subject_as_test_set_pretrained_on_TUH_decoding_chunk_len200_ovlp150-0"]
+                     //"--pretrained-model", "~/Desktop/PhD/NeuroGPT-TL/results/models/upstream/64ch_7th_subject_as_test_set_csmcausal_chunk_len200_ovlp150/pretrained_smallest_trainset_loss.pth"]
+
+        },
+    ]
+}
