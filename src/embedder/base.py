@@ -245,8 +245,8 @@ class BaseEmbedder(torch.nn.Module):
         ) -> Dict[str, torch.tensor]:
 
         if self.is_decoding_mode:
-            # losses = self.decoding_loss(                              # use this for single label classification
-            losses = self.decoding_loss_multi_label_classification(     # use this for multilabel classification
+            losses = self.decoding_loss(                              # use this for single label classification
+            #losses = self.decoding_loss_multi_label_classification(     # use this for multilabel classification
                 **batch,
                 **outputs
             )
