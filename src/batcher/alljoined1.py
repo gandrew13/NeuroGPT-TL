@@ -28,23 +28,29 @@ class Alljoined1(Dataset):
         self.do_normalization = normalization
         self.gpt_only=gpt_only
         self.start_samp_pnt = start_samp_pnt
+        self.zero_pad = 0
+        
+        self.only_labels = False # only return the labels, used in prediction mode (for testing purposes)
 
         
     def __getitem__(self, index):
         data = self.data[index]['EEG']
         image_id = self.data[index]['73k_id']
 
+        if self.only_labels:
+            return self.labels[image_id]
+
         # reorder channels
         # data = self.reorder_channels(data)
 
         # filter channels (used to experiment with different number of channels)
-        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8"]) # 8 channels, keep only the occipital lobe channels, since they are related to the visual cortex
+        data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8"]) # 8 channels, keep only the occipital lobe channels, since they are related to the visual cortex
         #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8"]) #17 channels keep only the occipital lobe channels, since they are related to the visual cortex
         #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8"]) # 26 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
         #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8"]) # 35 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
         #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8"]) # 44 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
         #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8"]) # 53 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
-        data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "AF3", "AF4", "FP1", "FPZ", "FP2"]) # 58 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
+        #data = self.filter_channels(data, ["O1", "OZ", "O2", "PO7", "PO3", "POZ", "PO4", "PO8", "P7", "P5", "P3", "P1", "PZ", "P2", "P4", "P6", "P8", "TP7", "CP5", "CP3", "CP1", "CPZ", "CP2", "CP4", "CP6", "TP8", "T7", "C5", "C3", "C1", "CZ", "C2", "C4", "C6", "T8", "FT7", "FC5", "FC3", "FC1", "FCZ", "FC2", "FC4", "FC6", "FT8", "F7", "F5", "F3", "F1", "FZ", "F2", "F4", "F6", "F8", "AF3", "AF4", "FP1", "FPZ", "FP2"]) # 58 channels, keep only the occipital and central lobe channels, since they are related to the visual cortex
         #print(len(data), len(data[0]))
 
         return self.preprocess_sample(data, seq_len=self.num_chunks, labels=self.labels[image_id])
@@ -122,9 +128,15 @@ class Alljoined1(Dataset):
         seq_len,
         labels=None
         ) -> Dict[str, torch.Tensor]:
+        
         out = {}
+        
         if self.do_normalization:
             sample = self.normalize(sample)
+
+        if self.zero_pad != 0:
+            # zero-pad last dimension (which is the temporal dimension, the length of each channel) with enough zeros to get to self.zero_pad
+            sample = torch.nn.functional.pad(torch.tensor(sample), (-1, self.zero_pad - len(sample[0]) + 1), "constant", 0.0)
 
         chunks, seq_on = self.split_chunks(sample, self.chunk_len, self.ovlp, seq_len, self.start_samp_pnt)
 
@@ -156,7 +168,7 @@ class Alljoined1(Dataset):
             }
 
         if labels is not None:
-            out['labels'] = torch.from_numpy(np.array(labels)).to(torch.float32)
+            out['labels'] = torch.from_numpy(np.array(labels)).to(torch.long)
    
         return out
     
