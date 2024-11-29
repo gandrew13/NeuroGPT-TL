@@ -100,6 +100,7 @@ def _cat_data_collator(features: List) -> Dict[str, torch.tensor]:
 
 def decoding_accuracy_metrics(eval_preds):
     preds, labels = eval_preds
+    preds = np.array(preds) # TODO: Why is this here? Review when you come back to this project.
     preds = preds.argmax(axis=-1)
     accuracy = accuracy_score(labels, preds)
     return {
@@ -220,8 +221,8 @@ def make_trainer(
     data_collator = _cat_data_collator
     is_deepspeed = deepspeed is not None
     # TODO: custom compute_metrics so far not working in multi-gpu setting
-    #compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
-    compute_metrics = decoding_accuracy_metrics_multilabel_classification if training_style=='decoding' and compute_metrics is None else compute_metrics
+    compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
+    #compute_metrics = decoding_accuracy_metrics_multilabel_classification if training_style=='decoding' and compute_metrics is None else compute_metrics
 
     trainer = Trainer(
         args=trainer_args,

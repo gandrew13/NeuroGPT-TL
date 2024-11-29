@@ -56,7 +56,7 @@ sys.path.insert(0, os.path.join(script_path, '../'))
 from batcher.alljoined1 import load_alljoined1_dataset
 from decoder.make_decoder import make_decoder
 from embedder.make import make_embedder
-from trainer.make import make_trainer
+from trainer.make import make_trainer, decoding_accuracy_metrics
 from trainer.base import Trainer
 from decoder.unembedder import make_unembedder
 
@@ -71,6 +71,7 @@ def train(config: Dict=None) -> Trainer:
     if config is None:
         config = get_config()
 
+    #config['do_train'] = False
     if config['do_train']:
         os.makedirs(config["log_dir"], exist_ok=True)
         resume_path = str(config["resume_from"]) if config["resume_from"] is not None else None
@@ -111,21 +112,23 @@ def train(config: Dict=None) -> Trainer:
         random.seed(config["seed"])
         manual_seed(config["seed"])
 
-    # TODO: maybe split into train/val/test, not only train/test
-    leave_subject_out = -1
-    if leave_subject_out == -1:
-        ds = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
-                                ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=None)
-    
-        train_set_perc = (80 / 100) * len(ds)
-        test_set_perc = (20 / 100) * len(ds)
-        train_dataset, test_dataset = torch.utils.data.random_split(ds, [int(train_set_perc), int(test_set_perc)])
-    else:
-        train_dataset = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
-                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=True)
+    config["multi_label"] = False # single- or multi-label classification
 
-        test_dataset = EEGImageNetDataset(sample_keys=['inputs', 'attention_mask'], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"],
-                                            ovlp=config["chunk_ovlp"], gpt_only= not config["use_encoder"], train=False)
+    #train_dataset, val_dataset, test_dataset = load_eegimagenet_dataset("../Datasets/EEGImageNet/", config) # TODO: remove hardcoded path, use args or receive as parameter, EEGImageNet dataset
+    train_dataset, val_dataset, test_dataset = load_alljoined1_dataset(config)
+
+    #if config["training_style"] == 'decoding':
+    #temp = train_dataset
+    #train_dataset = val_dataset
+    #val_dataset = temp
+    #test_dataset = temp
+    val_dataset = test_dataset  # TODO: Watch out for this!!
+    print("Train set len: ", len(train_dataset))
+    print("Val set len: ", len(val_dataset))
+    print("Test set len: ", len(test_dataset))
+
+    #predict(config, [train_dataset])
+    # exit()
 
     def model_init(params: Dict=None):
         model_config = dict(config)
@@ -145,7 +148,7 @@ def train(config: Dict=None) -> Trainer:
         run_name=config["run_name"],
         output_dir=config["log_dir"],
         train_dataset=train_dataset,
-        validation_dataset=test_dataset,
+        validation_dataset=val_dataset,
         per_device_train_batch_size=config["per_device_training_batch_size"],
         per_device_eval_batch_size=config["per_device_validation_batch_size"],
         dataloader_num_workers=config["num_workers"],
@@ -166,13 +169,14 @@ def train(config: Dict=None) -> Trainer:
         seed=config["seed"] if config['set_seed'] else np.random.choice(range(1, 100000)),
         fp16=config["fp16"],
         deepspeed=config["deepspeed"],
+        save_strategy="no"
     )
 
     if config['do_train']:
+        #trainer.model.from_pretrained(config["pretrained_model"])
         trainer.train(resume_from_checkpoint=config["resume_from"])
         trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
 
-    # test_dataset = None
     if test_dataset is not None:
         test_prediction = trainer.predict(test_dataset)
         pd.DataFrame(test_prediction.metrics, index=[0]).to_csv(os.path.join(config["log_dir"], 'test_metrics.csv'),index=False)
@@ -190,7 +194,7 @@ def make_model(model_config: Dict=None):
         chann_coords = None
         
         # CrossEntropy (includes logsoftmax) is used for normal classification. BCEWithLogits (includes softmax) is used for multilabel classification.
-        encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=22, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"])
+        encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=8, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"], add_log_softmax = False)
         #calculates the output dimension of the encoder, which is the output of transformer layer.
         model_config["parcellation_dim"] = ((model_config['chunk_len'] - model_config['filter_time_length'] + 1 - model_config['pool_time_length']) // model_config['stride_avg_pool'] + 1) * model_config['n_filters_time']
 
@@ -282,7 +286,27 @@ def make_model(model_config: Dict=None):
 
     return model
 
+def predict(config, datasets, trainer):
+    #model = make_model(config)
 
+    #model.from_pretrained("/home/agalbenus/Desktop/PhD/NeuroGPT-TL/results/models/upstream/aaa-0/pretrained_smallest_trainset_loss.pth")
+    model = trainer.model
+    model.eval()
+    model = model.to("cpu")
+
+    for ds in datasets:
+        i = 0
+        preds, labels = [], []
+        if ds is not None:
+            for sample in ds:
+                features, label = sample["inputs"], sample["labels"]
+                batch = {}
+                batch["inputs"] = torch.tensor(features).unsqueeze(0)
+                prediction = model(batch)
+                preds.append(prediction["decoding_logits"].squeeze(0).detach().numpy())
+                labels.append(label)
+            accuracy = decoding_accuracy_metrics((preds, labels))
+            print(accuracy)
 
 def get_config(args: argparse.Namespace=None) -> Dict:
     """
