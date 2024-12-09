@@ -80,7 +80,7 @@
             "name": "Python Debugger: Prediction (Accuracy)",
             "type": "debugpy",
             "request": "launch",
-            "program": "~/Desktop/PhD/NeuroGPT-TL/src8_for_testing/train_gpt.py",
+            "program": "~/Desktop/PhD/NeuroGPT-TL/src/train_gpt.py",
             "console": "integratedTerminal",
             "args": ["--training-style", "decoding",
                      "--num-decoding-classes", "12",  // 59 for EEGImageNet and 12 for Alljoined1
